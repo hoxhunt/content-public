@@ -6,71 +6,60 @@ import re
 # Define the base directory
 base_dir = '/Users/iapt/dev/demisto/content/Packs'
 
-def get_marketplace_name(yaml_data):
-    if "marketplaces" not in yaml_data or not yaml_data["marketplaces"]:
-        return ""
+# def get_marketplace_name(yaml_data):
+#     if "marketplaces" not in yaml_data or not yaml_data["marketplaces"]:
+#         return ""
 
-    xsoar_keys = {"xsoar", "xsoar_saas", "xsoar_on_prem"}
-    if any(key in yaml_data.get("marketplaces", []) for key in xsoar_keys):
-        return "" if "marketplacev2" in yaml_data.get("marketplaces", []) else "XSOAR"
+#     xsoar_keys = {"xsoar", "xsoar_saas", "xsoar_on_prem"}
+#     if any(key in yaml_data.get("marketplaces", []) for key in xsoar_keys):
+#         return "" if "marketplacev2" in yaml_data.get("marketplaces", []) else "XSOAR"
 
-    return "XSIAM" if "marketplacev2" in yaml_data.get("marketplaces", []) else "XSOAR"
+#     return "XSIAM" if "marketplacev2" in yaml_data.get("marketplaces", []) else "XSOAR"
 
-def update_readme(integration_name, id, readme_content, mp):
-    conf_xsoar = r"Configure (.+?) on Cortex XSOAR"
+def update_readme(integration_name, readme_content):
+    conf_xsoar = r"Configure (.+?) on Cortex (.+?)"
     match = re.search(conf_xsoar, readme_content)
+    replacements = {}
     if match:
         wildcard_value = match.group(1)
-        conf_xsoar = f"Configure {wildcard_value} on Cortex XSOAR"
-    navigation = "Navigate to **Settings** > **Integrations** > **Servers & Services**."
-    cortex_cli = "You can execute these commands from the Cortex XSOAR CLI"
-    replacements = {}
-    if mp == "XSOAR":
-        replacements[navigation] = (
-            "* For XSOAR 6.x users: Navigate to **Settings** > **Integrations** > **Instances**.\n"
-            "   * For XSOAR 8.x users: Navigate to **Settings & Info** > **Settings** > **Integrations** > "
-            "**Instances**."
-        ).strip()
-    elif mp == "":
-        if conf_xsoar in readme_content:
-            replacements[conf_xsoar] = f"Configure {wildcard_value if wildcard_value else integration_name} on Cortex"
-        if navigation in readme_content:
-            replacements[navigation] = (
-                "  * For XSOAR 6.x users: Navigate to **Settings** > **Integrations** > **Instances**.\n"
-                "   * For XSOAR 8.x users: Navigate to **Settings & Info** > **Settings** > **Integrations** > "
-                "**Instances**.\n"
-                "   * For XSIAM users: Navigate to **Settings** > **Configurations** > **Data Collection** > "
-                "**Automation & Feed Integrations**."
-            ).strip()
+        cortex_variant = match.group(2)
+        conf_xsoar = f"Configure {wildcard_value} on Cortex {cortex_variant}"
+    navigation1 = "1. Navigate to **Settings** > **Integrations** > **Servers & Services**."
+    navigation2_pattern = "2. Search for (.+?)"
+    match1 = re.search(navigation2_pattern, readme_content)
+    if match1:
+        name_of_integration = match1.group(1)
+        navigation2 = f"2. Search for {name_of_integration}"
+        if navigation2 in readme_content:
+            replacements[navigation2] = ""
+    navigation3 = "3. Click Add instance to create and configure a new integration instance."
+    navigation4 = "4. Click Test to validate the URLs, token, and connection."
+    cortex_cli_pattern = "You can execute these commands from the Cortex (.+?) CLI"
+    match2 = re.search(cortex_cli_pattern, readme_content)
+    if match2:
+        cortex_variant = match2.group(1)
+        cortex_cli = f"You can execute these commands from the Cortex {cortex_variant} CLI"
         if cortex_cli in readme_content:
-            replacements[cortex_cli] = "You can execute these commands from the Cortex CLI"
-    elif mp == "XSIAM":
-        if conf_xsoar in readme_content:
-            replacements[conf_xsoar] = f"Configure {wildcard_value if wildcard_value else integration_name} on Cortex XSIAM"
-        if "Collector" in id:
-            navigation_xsiam = "Navigate to **Settings** > **Configurations** > **Data Collection** > **Automation and Feed Integrations**."
-            if navigation in readme_content :
-                replacements[navigation] = "Navigate to **Settings** > **Data Sources** > **Add Data Source** > **Search**."
-            if navigation_xsiam in readme_content:
-                replacements[navigation_xsiam] = "Navigate to **Settings** > **Data Sources** > **Add Data Source** > **Search**."
-        elif navigation in readme_content:
-            replacements[navigation] = (
-                "Navigate to **Settings** > **Configurations** > **Data Collection** > "
-                "**Automation & Feed Integrations**."
-            ).strip()
-        if cortex_cli in readme_content:
-            replacements[cortex_cli] = "You can execute these commands from the Cortex XSIAM CLI"
+            replacements[cortex_cli] = "You can execute these commands from the CLI"
+    if conf_xsoar in readme_content:
+        replacements[conf_xsoar] = f"Configure {wildcard_value if wildcard_value else integration_name} in Cortex"
+    if navigation1 in readme_content:
+        replacements[navigation1] = ""
+    if navigation3 in readme_content:
+        replacements[navigation3] = ""
+    if navigation4 in readme_content:
+        replacements[navigation4] = ""
+   
     return replacements
         
 
 def process_files(readme_path, yml_content):
     try:
         yaml_data = yaml.safe_load(yml_content)
-        marketplace_name = get_marketplace_name(yaml_data)
         with open(readme_path, 'r+') as readme_file:
             readme_content = readme_file.read()
             
-            replacements = update_readme(yaml_data.get('display'), yaml_data.get('name'), readme_content, marketplace_name)
+            replacements = update_readme(yaml_data.get('display'), readme_content)
             
             # Perform replacements
             updated_content = readme_content
