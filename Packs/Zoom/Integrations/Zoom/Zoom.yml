@@ -1286,6 +1286,6 @@ script:
   subtype: python3
   type: python
 fromversion: 5.0.0
-toersion: 10.0.0
+toversion: 10.0.0
 tests:
 - No tests (auto formatted)
