@@ -1,6 +1,7 @@
 id: Jask_Test
 version: -1
 name: Jask Test
+fromversion: 4.0.9
 toversion: 4.0.9
 starttaskid: "0"
 tasks:
