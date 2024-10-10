@@ -311,13 +311,13 @@ class ZoomMailClient(BaseClient):
 
     def list_users(
         self,
-        status="active",
-        page_size=30,
-        role_id="",
-        page_number="1",
-        include_fields="",
-        next_page_token="",
-        zoom_license="",
+        status: str = "active",
+        page_size: int = 30,
+        role_id: str = "",
+        page_number: str = "1",
+        include_fields: str = "",
+        next_page_token: str = "",
+        zoom_license: str = "",
     ):
         if next_page_token:
             return self._http_request(
