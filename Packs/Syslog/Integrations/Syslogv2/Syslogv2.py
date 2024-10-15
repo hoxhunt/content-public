@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from tempfile import NamedTemporaryFile
-from collections.abc import Callable
+from typing import Callable
 
 import urllib3
 
@@ -86,45 +86,6 @@ def parse_rfc_3164_format(log_message: bytes) -> Optional[SyslogMessageExtract]:
     )
 
 
-def fix_syslog_message(log_message: str) -> str:
-
-    # Fix the timestamp format if necessary
-    def fix_timestamp(time_stamp: str) -> str:
-        try:
-            dt = datetime.strptime(time_stamp, '%Y-%m-%dT%H:%M:%SZ')
-            return dt.strftime('%Y-%m-%dT%H:%M:%SZ')  # Ensure it's in the correct format
-        except ValueError:
-            return '1970-01-01T00:00:00Z'  # Default to an epoch time if invalid
-
-    # Escape quotes in structured data
-    def escape_quotes(data: str) -> str:
-        return re.sub(r'(?<!\\)"', r'\"', data)  # Escape unescaped quotes
-
-    # Split the log message components
-    components = log_message.split(' ', 7)  # Split into maximum 8 parts
-    if len(components) < 8:
-        return "Invalid log message structure"
-
-    # Extract and fix components
-    priority = components[0]
-    version = components[1]
-    timestamp = fix_timestamp(components[2])
-    hostname = components[3]
-    appname = components[4]
-    procid = components[5]
-    msgid = components[6]
-    structured_data = components[7].split(' ', 1)[0]  # Take the first part as structured data
-    message_content = ' '.join(components[7:]).replace(structured_data, '', 1).strip()  # Remaining content
-
-    # Escape quotes in structured data
-    structured_data = escape_quotes(structured_data)
-
-    # Rebuild the log message
-    fixed_message = f"{priority} {version} {timestamp} {hostname} {appname} {procid} {msgid} {structured_data} {message_content}"
-
-    return fixed_message
-
-
 def parse_rfc_5424_format(log_message: bytes) -> Optional[SyslogMessageExtract]:
     """
     Receives a log message which is in RFC 5424 format. Parses it into SyslogMessageExtract data class object
@@ -135,7 +96,7 @@ def parse_rfc_5424_format(log_message: bytes) -> Optional[SyslogMessageExtract]:
         (Optional[SyslogMessageExtract]): Extraction data class
     """
     try:
-        syslog_message: SyslogMessage = SyslogMessage.parse(fix_syslog_message(log_message.decode('utf-8')))
+        syslog_message: SyslogMessage = SyslogMessage.parse(log_message.decode('utf-8'))
     except ParseError as e:
         demisto.debug(f'Could not parse the log message, got ParseError. Error was: {e}')
         return None
@@ -248,7 +209,7 @@ def log_message_passes_filter(log_message: SyslogMessageExtract, message_regex: 
     if not message_regex:
         return True
     regexp = re.compile(message_regex)
-    return bool(regexp.search(log_message.msg))
+    return True if regexp.search(log_message.msg) else False
 
 
 def perform_long_running_loop(socket_data: bytes):
@@ -377,7 +338,7 @@ def main() -> None:
         port = int(params.get('longRunningPort'))
     except (ValueError, TypeError):
         raise DemistoException(f'Invalid listen port - {port}. Make sure your port is a number')
-    if port < 0 or port > MAX_PORT:
+    if port < 0 or MAX_PORT < port:
         raise DemistoException(f'Given port: {port} is not valid and must be between 0-{MAX_PORT}')
 
     demisto.debug(f'Command being called is {demisto.command()}')
