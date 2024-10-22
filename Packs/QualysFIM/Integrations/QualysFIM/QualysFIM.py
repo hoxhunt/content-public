@@ -65,7 +65,7 @@ class Client(BaseClient):
         return:
             response (Response): API response from Qualys FIM.
         """
-        return self._http_request(method='GET', url_suffix='fim/v1/incidents/',
+        return self._http_request(method='GET', url_suffix='fim/v2/incidents/',
                                   params={'pageSize': '1'}, resp_type='response')
 
     def events_list(self, data: dict):
@@ -90,7 +90,7 @@ class Client(BaseClient):
         return:
             response (Dict): API response from Qualys FIM.
         """
-        return self._http_request(method='GET', url_suffix=f'fim/v1/events/{event_id}')
+        return self._http_request(method='GET', url_suffix=f'fim/v2/events/{event_id}')
 
     def incidents_list(self, data: dict):
         """
